@@ -1,0 +1,68 @@
+name: Instalador para Mac
+
+# Cada cambio en main compila Lienzo en un Mac de GitHub y publica el .dmg
+# en la sección «Releases» del repositorio.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar dependencias
+        run: npm install --no-audit --no-fund
+
+      - name: Generar icono
+        run: node scripts/make-icon.js
+
+      - name: Compilar la app (Intel + Apple Silicon)
+        run: npx electron-builder --mac dir --universal --publish never
+
+      - name: Firmar la app (firma local, sin cuenta de desarrollador)
+        run: |
+          APP="dist/mac-universal/Lienzo.app"
+          test -d "$APP"
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --deep --strict "$APP"
+
+      - name: Crear el instalador .dmg
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          mkdir -p dmg
+          ditto "dist/mac-universal/Lienzo.app" "dmg/Lienzo.app"
+          ln -s /Applications dmg/Aplicaciones
+          hdiutil create -volname "Lienzo" -srcfolder dmg -ov -format UDZO "Lienzo-$VERSION.dmg"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Guardar el instalador como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lienzo-${{ env.VERSION }}
+          path: Lienzo-${{ env.VERSION }}.dmg
+
+      - name: Publicar en Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Lienzo ${{ env.VERSION }}
+          files: Lienzo-${{ env.VERSION }}.dmg
+          make_latest: true
+          body: |
+            Descarga **Lienzo-${{ env.VERSION }}.dmg**, ábrelo y arrastra Lienzo a la carpeta Aplicaciones.
+
+            La primera vez macOS avisará de que no puede verificar al desarrollador (la app no está firmada con una cuenta de Apple de pago). Para abrirla:
+            1. Intenta abrir Lienzo una vez y cierra el aviso.
+            2. Ve a **Ajustes del Sistema → Privacidad y seguridad** y pulsa **Abrir igualmente** junto al mensaje sobre Lienzo.
+
+            Funciona en Mac con Apple Silicon (M1, M2, M3, M4…) y con Intel.

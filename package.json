@@ -1,0 +1,66 @@
+{
+  "name": "lienzo",
+  "productName": "Lienzo",
+  "version": "1.0.0",
+  "description": "Editor de dibujo sencillo para macOS inspirado en el clásico programa de pintura de Windows.",
+  "main": "main.js",
+  "author": "Javim3tal",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "icon": "node scripts/make-icon.js",
+    "dist:mac": "node scripts/make-icon.js && electron-builder --mac dir --universal --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.9.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "io.github.javim3tal.lienzo",
+    "productName": "Lienzo",
+    "copyright": "Copyright © 2026 Javim3tal",
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "mac": {
+      "category": "public.app-category.graphics-design",
+      "icon": "build/icon.png",
+      "identity": null,
+      "hardenedRuntime": false,
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "universal"
+          ]
+        }
+      ]
+    },
+    "fileAssociations": [
+      {
+        "ext": [
+          "png",
+          "jpg",
+          "jpeg",
+          "bmp",
+          "gif",
+          "webp",
+          "heic",
+          "tif",
+          "tiff"
+        ],
+        "name": "Imagen",
+        "role": "Editor",
+        "rank": "Alternate"
+      }
+    ]
+  }
+}

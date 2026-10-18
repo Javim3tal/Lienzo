@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'">
+  <title>Lienzo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <button class="tb" data-cmd="new" data-icon="new" title="Nuevo"></button>
+    <button class="tb" data-cmd="open" data-icon="open" title="Abrir"></button>
+    <button class="tb" data-cmd="save" data-icon="save" title="Guardar"></button>
+    <span class="vsep"></span>
+    <button class="tb" id="undoBtn" data-cmd="undo" data-icon="undo" title="Deshacer"></button>
+    <button class="tb" id="redoBtn" data-cmd="redo" data-icon="redo" title="Rehacer"></button>
+    <div class="spacer"></div>
+    <button class="tb" data-cmd="shortcuts" data-icon="help" title="Atajos de teclado"></button>
+  </div>
+
+  <div id="ribbon">
+    <section class="group">
+      <div class="group-body">
+        <div class="split">
+          <button class="big" data-tool="select" data-icon="select" title="Seleccionar (S)"></button>
+          <button class="caret" data-pop="popSelect" title="Opciones de selección">▾</button>
+        </div>
+        <div class="stack">
+          <button class="row-btn" data-cmd="crop" title="Recortar a la selección"><span data-icon="crop"></span>Recortar</button>
+          <button class="row-btn" data-cmd="resize" title="Cambiar tamaño y sesgar"><span data-icon="resize"></span>Tamaño</button>
+          <button class="row-btn" data-pop="popRotate" title="Girar y voltear"><span data-icon="rotate"></span>Girar ▾</button>
+        </div>
+      </div>
+      <div class="group-label">Imagen</div>
+    </section>
+
+    <section class="group">
+      <div class="group-body">
+        <div class="tool-grid">
+          <button data-tool="pencil" data-icon="pencil" title="Lápiz (P)"></button>
+          <button data-tool="fill" data-icon="fill" title="Rellenar con color (F)"></button>
+          <button data-tool="text" data-icon="text" title="Texto (T)"></button>
+          <button data-tool="eraser" data-icon="eraser" title="Borrador (E)"></button>
+          <button data-tool="picker" data-icon="picker" title="Selector de color (I)"></button>
+          <button data-tool="zoom" data-icon="zoom" title="Lupa (Z)"></button>
+        </div>
+      </div>
+      <div class="group-label">Herramientas</div>
+    </section>
+
+    <section class="group">
+      <div class="group-body">
+        <div class="split">
+          <button class="big" id="brushBtn" data-tool="brush" data-icon="brush" title="Pinceles (B)"></button>
+          <button class="caret" data-pop="popBrush" title="Tipo de pincel">▾</button>
+        </div>
+      </div>
+      <div class="group-label">Pinceles</div>
+    </section>
+
+    <section class="group">
+      <div class="group-body">
+        <div id="shapeGrid"></div>
+        <div class="stack narrow">
+          <label class="mini">Contorno
+            <select id="outlineSel">
+              <option value="solid">Sólido</option>
+              <option value="none">Ninguno</option>
+            </select>
+          </label>
+          <label class="mini">Relleno
+            <select id="fillSel">
+              <option value="none">Ninguno</option>
+              <option value="solid">Sólido</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="group-label">Formas</div>
+    </section>
+
+    <section class="group">
+      <div class="group-body">
+        <button class="big size-btn" id="sizeBtn" data-pop="popSize" title="Grosor">
+          <span id="sizePreview"></span>
+          <span id="sizeLabel">1 px</span>
+        </button>
+      </div>
+      <div class="group-label">Tamaño</div>
+    </section>
+
+    <section class="group">
+      <div class="group-body colors">
+        <button class="swatch-big" id="color1" title="Color 1 (clic izquierdo). Pulsa para editarlo."><span></span><small>Color 1</small></button>
+        <button class="swatch-big" id="color2" title="Color 2 (clic derecho). Pulsa para editarlo."><span></span><small>Color 2</small></button>
+        <button class="tb" id="swapBtn" data-icon="swap" title="Intercambiar colores (X)"></button>
+        <div>
+          <div id="palette" class="palette"></div>
+          <div id="customPalette" class="palette custom"></div>
+        </div>
+        <button class="row-btn tall" id="editColors" title="Elegir un color personalizado"><span data-icon="palette"></span>Editar<br>colores</button>
+      </div>
+      <div class="group-label">Colores</div>
+    </section>
+  </div>
+
+  <div id="textbar" hidden>
+    <select id="fontSel" title="Fuente"></select>
+    <select id="fontSizeSel" title="Tamaño de fuente"></select>
+    <button class="tog" id="boldBtn" title="Negrita"><b>N</b></button>
+    <button class="tog" id="italicBtn" title="Cursiva"><i>K</i></button>
+    <button class="tog" id="underlineBtn" title="Subrayado"><u>S</u></button>
+    <span class="vsep"></span>
+    <label><input type="radio" name="textBg" value="transparent" checked> Fondo transparente</label>
+    <label><input type="radio" name="textBg" value="opaque"> Fondo opaco</label>
+  </div>
+
+  <div id="workspace">
+    <div id="stageWrap">
+      <div id="stage" data-tool="pencil">
+        <canvas id="canvas" width="1000" height="640"></canvas>
+        <canvas id="overlay" width="1000" height="640"></canvas>
+        <div id="selbox" hidden></div>
+        <div id="cursorBox" hidden></div>
+        <div id="resizeGhost" hidden></div>
+        <textarea id="textInput" hidden spellcheck="false" autocomplete="off"></textarea>
+        <div class="handle" data-dir="e" title="Arrastra para cambiar el ancho"></div>
+        <div class="handle" data-dir="s" title="Arrastra para cambiar el alto"></div>
+        <div class="handle" data-dir="se" title="Arrastra para cambiar el tamaño"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="statusbar">
+    <span class="st" id="stPos"></span>
+    <span class="st" id="stSel"></span>
+    <span class="st" id="stSize"></span>
+    <div class="spacer"></div>
+    <div class="zoomctl">
+      <button data-cmd="zoomFit" data-icon="fit" title="Ajustar a la ventana"></button>
+      <button data-cmd="zoomOut" data-icon="minus" title="Alejar"></button>
+      <input type="range" id="zoomRange" min="0" max="100" step="0.5" title="Zoom">
+      <button data-cmd="zoomIn" data-icon="plus" title="Acercar"></button>
+      <span id="zoomLabel">100%</span>
+    </div>
+  </div>
+</div>
+
+<!-- Menús desplegables -->
+<div class="popover" id="popSelect" hidden>
+  <button class="pop-item" data-select-mode="rect"><span data-icon="select"></span>Selección rectangular</button>
+  <button class="pop-item" data-select-mode="free"><span data-icon="lasso"></span>Selección de forma libre</button>
+  <hr>
+  <button class="pop-item" data-cmd="selectAll">Seleccionar todo</button>
+  <button class="pop-item" data-cmd="delete">Eliminar selección</button>
+  <hr>
+  <label class="pop-item"><input type="checkbox" id="transparentSel"> Selección transparente</label>
+</div>
+
+<div class="popover" id="popRotate" hidden>
+  <button class="pop-item" data-cmd="rotateRight">Girar 90° a la derecha</button>
+  <button class="pop-item" data-cmd="rotateLeft">Girar 90° a la izquierda</button>
+  <button class="pop-item" data-cmd="rotate180">Girar 180°</button>
+  <hr>
+  <button class="pop-item" data-cmd="flipV">Voltear verticalmente</button>
+  <button class="pop-item" data-cmd="flipH">Voltear horizontalmente</button>
+  <hr>
+  <button class="pop-item" data-cmd="invert">Invertir colores</button>
+</div>
+
+<div class="popover" id="popBrush" hidden>
+  <button class="pop-item" data-brush="brush">Pincel</button>
+  <button class="pop-item" data-brush="calli1">Pincel caligráfico 1</button>
+  <button class="pop-item" data-brush="calli2">Pincel caligráfico 2</button>
+  <button class="pop-item" data-brush="airbrush">Aerógrafo</button>
+  <button class="pop-item" data-brush="marker">Marcador</button>
+</div>
+
+<div class="popover" id="popSize" hidden>
+  <div id="sizePresets"></div>
+  <div class="size-slider">
+    <input type="range" id="sizeRange" min="1" max="60" step="1">
+    <span id="sizeRangeLabel"></span>
+  </div>
+</div>
+
+<div id="modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody"></div>
+    <div class="modal-actions">
+      <button id="modalCancel">Cancelar</button>
+      <button id="modalOk" class="primary">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" hidden>
+<input type="color" id="colorInput" hidden>
+
+<script src="app.js"></script>
+</body>
+</html>
